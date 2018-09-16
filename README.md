@@ -13,7 +13,7 @@ and send them out through SES. Invalid/failed messages will end up in the Dead-L
 
 ### Build
 
-Just run: `mvn package`
+Just run: `mvn clean package` or `./mvnw clean package` or `.\mvnw clean package` 
 
 ## Configuration
 
