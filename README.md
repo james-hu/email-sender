@@ -13,7 +13,7 @@ and send them out through SES. Invalid/failed messages will end up in the Dead-L
 
 ### Build
 
-Just run `mvn package`
+Just run: `mvn package`
 
 ## Configuration
 
@@ -24,6 +24,10 @@ Two SQS queues must exist, one as the input queue, the other as the Dead-Letter-
 The input queue should have these configured:
 * It triggers the Lambda function.
 * It has Dead-Letter-Queue configured on it.
+
+### Handler
+
+The handler class is: `net.sf.jabb.email.sender.LambdaEmailSender`
 
 ### Environment variables
 
