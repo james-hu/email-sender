@@ -11,6 +11,10 @@ You just need to put details of the email messages into the input SQS queue.
 If configured properly, the lambda function should be able to pick up messages from the input SQS queue
 and send them out through SES. Invalid/failed messages will end up in the Dead-Letter-Queue.
 
+### Build
+
+Just run `mvn package`
+
 ## Configuration
 
 ### SQS Queues
@@ -41,6 +45,6 @@ The Lambda function needs to run in a role with these policies:
 * `AWSLambdaSQSQueueExecutionRole`
 * `AWSLambdaBasicExecutionRole`
 * These permissions on SES:
-** `SendEmail`
+  * `SendEmail`
 * These permissions on the Dead-Letter-Queue specified by environment variable `DLQ_URL`:
-** `SendMessage`
+  * `SendMessage`
