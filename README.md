@@ -32,7 +32,7 @@ The handler class is: `net.sf.jabb.email.sender.LambdaEmailSender`
 ### Environment variables
 
 * SES_REGION - In which AWS region should SES be used for sending out emails. e.g. `us-west-2`
-* DLQ_URL - URL to the Dead-Letter-Queue that all invalid/failed emails should go. e.g. `https://sqs.us-west-2.amazonaws.com/123456789/email-dead-dead-letter-queue`
+* DLQ_URL - URL to the Dead-Letter-Queue that all invalid/failed emails should go. e.g. `https://sqs.us-west-2.amazonaws.com/123456789/email-dead-letter-queue`
 
 ### Memory usage
 
