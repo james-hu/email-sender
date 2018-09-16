@@ -1,7 +1,8 @@
-# AWS Lambda function that sends emails through AWS SES
+# AWS Lambda function that sends emails through SES
 
 This Lambda function receives input from AWS SQS, then sends out emails through AWS SES.
 
+![Alt Architecture Overview Diagram](https://raw.githubusercontent.com/james-hu/jabb-email-sender/master/doc/Overview.png)
 
 
 ## Usage
