@@ -1,2 +1,3 @@
-# email-sender
-AWS Lambda function that sends email through AWS SES
+# AWS Lambda function that sends emails through AWS SES
+
+This Lambda function receives input from AWS SQS, then sends out emails through AWS SES
