@@ -22,24 +22,25 @@ import java.util.Map;
  * The AWS Lambda request handler that takes input from SQS and send them out through SES.
  */
 public class LambdaEmailSender implements RequestHandler<SQSEvent, Boolean> {
-    public static final String ENV_NAME_SES_REGION = "SES_REGION";
     public static final String ENV_NAME_DLQ_URL = "DLQ_URL";
+    public static final String ENV_NAME_SENDER = "SENDER";
 
     private static final Logger logger = LogManager.getLogger(LambdaEmailSender.class);
     private static ObjectMapper objectMapper = new ObjectMapper();
 
+    @Override
     public Boolean handleRequest(SQSEvent event, Context context) {
         // initialization for all messages
-        String region = System.getenv(ENV_NAME_SES_REGION);
-        if (region == null || region.length() == 0){
-            logger.error("Please specify through which AWS region should emails be sent in environment variable '{}'",
-                    ENV_NAME_SES_REGION);
-            throw new IllegalArgumentException("Environment Variable '" + ENV_NAME_SES_REGION + "' is not set");
+        MessageSendingService sender;
+        String senderName = System.getenv(ENV_NAME_SENDER);
+        if ("SES".equalsIgnoreCase(senderName)){
+            sender = new AwsSesMessageSendingService();
+        }else if ("SendGrid".equalsIgnoreCase(senderName)){
+            sender = new SendGridMessageSendingService();
+        }else{
+            throw new IllegalArgumentException("Environment variable '" + ENV_NAME_SENDER +
+                    "' must be set to either 'SES' or 'SendGrid', it is actually: " + senderName);
         }
-        logger.debug("Using AWS region '{}' for sending emails", region);
-        AmazonSimpleEmailService client = AmazonSimpleEmailServiceClientBuilder.standard()
-                .withRegion(region)
-                .build();
 
         // loop through all messages
         boolean allSucceeded = true;
@@ -63,18 +64,18 @@ public class LambdaEmailSender implements RequestHandler<SQSEvent, Boolean> {
 
                 // send
                 try{
-                    send(client, emailMsg);
+                    sender.send(emailMsg);
                     sentCount ++;
                 }catch(Exception e){
                     allSucceeded = false;
-                    logger.error("Failed to send email, will never retry. Source: {}, Id: {}, Error: {}, From: {}, To: {}, Subject: {}",
-                            eventMsg.getEventSourceArn(), eventMsg.getMessageId(), e.getMessage(), emailMsg.getFrom(), emailMsg.getTo(), emailMsg.getSubject());
-                    copyQuietly(eventMsg, "Failed to send: " + e.getMessage());
+                    logger.error("Failed to send email through {}, will never retry. Source: {}, Id: {}, Error: {}, From: {}, To: {}, Subject: {}",
+                            senderName, eventMsg.getEventSourceArn(), eventMsg.getMessageId(), e.getMessage(), emailMsg.getFrom(), emailMsg.getTo(), emailMsg.getSubject());
+                    copyQuietly(eventMsg, "Failed to send through " + senderName + ": " + e.getMessage());
                     continue;
                 }
             }
         }
-        logger.info("Handled {} in total. Sent: {}, Invalid JSON: {}.", event.getRecords().size(), sentCount, invalidJsonCount);
+        logger.info("Handled {} in total. Sent through {}: {}, Invalid JSON: {}.", event.getRecords().size(), senderName, sentCount, invalidJsonCount);
         return allSucceeded;
     }
 
@@ -128,40 +129,4 @@ public class LambdaEmailSender implements RequestHandler<SQSEvent, Boolean> {
         sqs.sendMessage(req);
     }
 
-    /**
-     * Send out email through AWS SES.
-     * This method might through exception if calling to SES API fails.
-     * @param ses   SES client
-     * @param msg   Detail of the Email message to be sent
-     */
-    protected void send(AmazonSimpleEmailService ses, MessageToSend msg){
-        SendEmailRequest request = new SendEmailRequest()
-                .withSource(msg.getFrom())
-                .withDestination(new Destination())
-                .withMessage(new Message()
-                        .withSubject(new Content().withCharset("UTF-8").withData(msg.getSubject()))
-                        .withBody(new Body()));
-
-        // To
-        String toAddressesString = msg.getTo();
-        Destination dest = request.getDestination();
-        if (toAddressesString.indexOf(';') >= 0 || toAddressesString.indexOf(',') >= 0){
-            dest.withToAddresses(toAddressesString.split(" *[;,]+ *"));
-        }else{
-            dest.withToAddresses(toAddressesString);
-        }
-
-        // Body
-        Body body = request.getMessage().getBody();
-        String bodyHtml = msg.getBodyHtml();
-        String bodyText = msg.getBodyText();
-        if (bodyHtml != null && bodyHtml.length() > 0){
-            body.withHtml(new Content().withCharset("UTF-8").withData(bodyHtml));
-        }
-        if (bodyText != null && bodyText.length() > 0){
-            body.withText(new Content().withCharset("UTF-8").withData(bodyText));
-        }
-
-        ses.sendEmail(request);
-    }
 }
